@@ -881,6 +881,14 @@ package VX_gpu_pkg;
         return 1 << reg_idx.id;
     endfunction
 
+    /////////////////////////////// KMU data type /////////////////////////////
+    typedef struct packed {
+        logic [`XLEN-1:0]   pc;
+        logic [2:0][31:0]   grid_dim;
+        logic [2:0][31:0]   block_dim;
+        logic [`XLEN-1:0]   param;
+    } kmu_data_t;
+
 endpackage
 
 `IGNORE_UNUSED_END
