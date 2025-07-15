@@ -281,6 +281,11 @@ inline int vx_shfl_idx(size_t value, int bval, int cval, int mask) {
     return ret;
 }
 
+// extension to spawn warp for dynamic scheduling
+inline void vx_wspawn_ext(vx_wspawn_pfn func_ptr) {
+    __asm__ volatile (".insn r %0, 6, 0, x0, %1, %2" :: "i"(RISCV_CUSTOM0), "r"(4), "r"(func_ptr));
+}
+
 #ifdef __cplusplus
 }
 #endif

@@ -44,7 +44,9 @@ module VX_execute import VX_gpu_pkg::*; #(
     VX_warp_ctl_if.master   warp_ctl_if,
 
     // commit interface
-    VX_commit_csr_if.slave  commit_csr_if
+    VX_commit_csr_if.slave  commit_csr_if,
+
+    input wire[`NUM_WARPS-1:0]    task_warp_mask
 );
 
 `ifdef EXT_F_ENABLE
@@ -109,6 +111,7 @@ module VX_execute import VX_gpu_pkg::*; #(
     `endif
         .base_dcrs      (base_dcrs),
         .dispatch_if    (dispatch_if[EX_SFU * `ISSUE_WIDTH +: `ISSUE_WIDTH]),
+        .task_warp_mask (task_warp_mask),
         .commit_if      (commit_if[EX_SFU * `ISSUE_WIDTH +: `ISSUE_WIDTH]),
     `ifdef EXT_F_ENABLE
         .fpu_csr_if     (fpu_csr_if),

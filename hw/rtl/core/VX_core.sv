@@ -62,6 +62,8 @@ module VX_core import VX_gpu_pkg::*; #(
     VX_commit_if        commit_if[NUM_EX_UNITS * `ISSUE_WIDTH]();
     VX_writeback_if     writeback_if[`ISSUE_WIDTH]();
 
+    wire[`NUM_WARPS-1:0] task_warp_mask;
+
     VX_lsu_mem_if #(
         .NUM_LANES (`NUM_LSU_LANES),
         .DATA_SIZE (LSU_WORD_SIZE),
@@ -118,6 +120,8 @@ module VX_core import VX_gpu_pkg::*; #(
         .sched_csr_if   (sched_csr_if),
 
         .kmu_task_if    (kmu_task_if),
+
+        .task_warp_mask (task_warp_mask),
 
         .busy           (busy)
     );
@@ -186,7 +190,8 @@ module VX_core import VX_gpu_pkg::*; #(
         .sched_csr_if   (sched_csr_if),
 
         .warp_ctl_if    (warp_ctl_if),
-        .branch_ctl_if  (branch_ctl_if)
+        .branch_ctl_if  (branch_ctl_if),
+        .task_warp_mask (task_warp_mask)
     );
 
     VX_commit #(

@@ -506,6 +506,11 @@ module VX_decode import VX_gpu_pkg::*; #(
                                 `USED_IREG (rs1);
                                 `USED_IREG (rs2);
                             end
+                            3'h6: begin // wspawn_ext
+                                op_type = INST_OP_BITS'(INST_SFU_WSPAWN_EXT);
+                                `USED_IREG (rs1);
+                                `USED_IREG (rs2);
+                            end
                             default:;
                         endcase
                     end

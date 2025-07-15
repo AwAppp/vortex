@@ -44,11 +44,17 @@ module VX_schedule import VX_gpu_pkg::*; #(
     // task
     VX_kmu_task_if.slave    kmu_task_if,
 
+    output wire[`NUM_WARPS-1:0]    task_warp_mask,
+
     // status
     output wire             busy
 );
     `UNUSED_SPARAM (INSTANCE_ID)
     `UNUSED_PARAM (CORE_ID)
+
+    assign task_warp_mask = {`NUM_WARPS{1'b1}};
+    // assign task_warp_mask = 4;
+
 
     reg [`NUM_WARPS-1:0] active_warps, active_warps_n; // updated when a warp is activated or disabled
     reg [`NUM_WARPS-1:0] stalled_warps, stalled_warps_n;  // set when branch/gpgpu instructions are issued

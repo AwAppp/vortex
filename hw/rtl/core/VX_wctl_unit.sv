@@ -22,6 +22,7 @@ module VX_wctl_unit import VX_gpu_pkg::*; #(
 
     // Inputs
     VX_execute_if.slave     execute_if,
+    input wire[`NUM_WARPS-1:0]    task_warp_mask,
 
     // Outputs
     VX_warp_ctl_if.master   warp_ctl_if,
@@ -42,12 +43,13 @@ module VX_wctl_unit import VX_gpu_pkg::*; #(
     join_t      sjoin;
     barrier_t   barrier;
 
-    wire is_wspawn = (execute_if.data.op_type == INST_SFU_WSPAWN);
+    wire is_wspawn = (execute_if.data.op_type == INST_SFU_WSPAWN );
     wire is_tmc    = (execute_if.data.op_type == INST_SFU_TMC);
     wire is_pred   = (execute_if.data.op_type == INST_SFU_PRED);
     wire is_split  = (execute_if.data.op_type == INST_SFU_SPLIT);
     wire is_join   = (execute_if.data.op_type == INST_SFU_JOIN);
     wire is_bar    = (execute_if.data.op_type == INST_SFU_BAR);
+    wire is_wspawn_ext = (execute_if.data.op_type == INST_SFU_WSPAWN_EXT);
 
     wire [`UP(LANE_BITS)-1:0] last_tid;
     if (LANE_BITS != 0) begin : g_last_tid
@@ -143,10 +145,23 @@ module VX_wctl_unit import VX_gpu_pkg::*; #(
     // wspawn
 
     wire [`NUM_WARPS-1:0] wspawn_wmask;
-    for (genvar i = 0; i < `NUM_WARPS; ++i) begin : g_wspawn_wmask
-        assign wspawn_wmask[i] = (i < rs1_data[NW_BITS:0]) && (i != execute_if.data.wid);
+    logic [`NUM_WARPS-1:0] wspawn_tmp_wmask;
+
+    always_comb begin : wmask_setting
+        if (!is_wspawn_ext) begin
+            for(integer i=0; i < `NUM_WARPS; ++i) begin
+                wspawn_tmp_wmask[i] = (i < rs1_data[NW_BITS:0]) && (i != int'(execute_if.data.wid));
+            end
+        end else begin
+            wspawn_tmp_wmask = task_warp_mask;
+        end
     end
-    assign wspawn.valid = is_wspawn;
+
+    for (genvar i = 0; i < `NUM_WARPS; ++i) begin : g_wspawn_wmask
+        // assign wspawn_wmask[i] = (i < rs1_data[NW_BITS:0]) && (i != execute_if.data.wid);
+        assign wspawn_wmask[i] = wspawn_tmp_wmask[i];
+    end
+    assign wspawn.valid = is_wspawn ^ is_wspawn_ext;
     assign wspawn.wmask = wspawn_wmask;
     assign wspawn.pc    = from_fullPC(rs2_data);
 

@@ -311,7 +311,9 @@ int vx_spawn_threads(uint32_t dimension,
 
     if (active_warps >= 1) {
       // execute callback on other warps
-      vx_wspawn(active_warps, process_threads_stub);
+      // vx_wspawn(active_warps, process_threads_stub);
+
+      vx_wspawn_ext(process_threads_stub);
 
       // activate all threads
       vx_tmc(-1);

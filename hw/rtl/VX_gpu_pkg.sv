@@ -385,6 +385,9 @@ package VX_gpu_pkg;
     localparam INST_SFU_CSRRW =  4'h6;
     localparam INST_SFU_CSRRS =  4'h7;
     localparam INST_SFU_CSRRC =  4'h8;
+
+    localparam INST_SFU_WSPAWN_EXT = 4'h9;
+
     localparam INST_SFU_BITS =   4;
 
     function automatic logic [3:0] inst_sfu_csr(input logic [2:0] funct3);

@@ -30,6 +30,8 @@ module VX_sfu_unit import VX_gpu_pkg::*; #(
     // Inputs
     VX_dispatch_if.slave    dispatch_if [`ISSUE_WIDTH],
 
+    input wire[`NUM_WARPS-1:0]    task_warp_mask,
+
 `ifdef EXT_F_ENABLE
     VX_fpu_csr_if.slave     fpu_csr_if [`NUM_FPU_BLOCKS],
 `endif
@@ -107,6 +109,7 @@ module VX_sfu_unit import VX_gpu_pkg::*; #(
         .clk        (clk),
         .reset      (reset),
         .execute_if (pe_execute_if[PE_IDX_WCTL]),
+        .task_warp_mask (task_warp_mask),
         .warp_ctl_if(warp_ctl_if),
         .result_if  (pe_result_if[PE_IDX_WCTL])
     );
