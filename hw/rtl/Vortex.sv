@@ -50,6 +50,22 @@ wire start;
 VX_kmu_bus_if kmu_bus_in[1]();
 VX_kmu_bus_if kmu_bus_out[`NUM_CLUSTERS]();
 
+VX_kernel_queue #(
+    .QUEUE_DEPTH(8)
+) kernel_queue (
+    .clk(clk),
+    .reset(reset),
+    .dcr_wr_valid(dcr_wr_valid),      // From host
+    .dcr_wr_addr(dcr_wr_addr),
+    .dcr_wr_data(dcr_wr_data),
+    .kmu_dcr_wr_valid(kmu_dcr_wr_valid),  // To KMU
+    .kmu_dcr_wr_addr(kmu_dcr_wr_addr),
+    .kmu_dcr_wr_data(kmu_dcr_wr_data),
+    .kernel_done(all_cores_idle),     // Detect completion
+    .queue_full(queue_full),
+    .queue_empty(queue_empty)
+);
+
 VX_kmu kmu(
     .clk (clk),
     .reset (reset),
