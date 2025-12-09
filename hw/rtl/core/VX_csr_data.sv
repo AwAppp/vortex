@@ -69,7 +69,11 @@ import VX_fpu_pkg::*;
     input wire [NW_WIDTH-1:0]           write_wid,
     input wire [`VX_CSR_ADDR_BITS-1:0]  write_addr,
     input wire [`XLEN-1:0]              write_data,
-    output wire                         dl_ready
+
+    input wire [`NUM_WARPS-1:0]         dl_arb_ready,
+    output wire [`NUM_WARPS-1:0]        dl_entry_valid,
+    // output wire [`NUM_WARPS-1:0][$bits(dl_data_t)-1:0] dl_entry_out,
+    output dl_data_t [`NUM_WARPS-1:0]   dl_entry_out
 );
 
     `UNUSED_VAR (reset)
@@ -80,10 +84,12 @@ import VX_fpu_pkg::*;
 
     reg [`XLEN-1:0] mscratch;
     csr_cta_data_t [`NUM_WARPS-1:0] csr_ctas;
-    dl_data_t [`NUM_WARPS-1:0]     csr_dl_kde;
-    reg dl_ready_reg;
+    dl_data_t [`NUM_WARPS-1:0] csr_dl_kde;
+    reg [`NUM_WARPS-1:0] dl_entry_valid_reg;
 
-    assign dl_ready = dl_ready_reg;
+    assign dl_entry_valid = dl_entry_valid_reg;
+    assign dl_entry_out = csr_dl_kde;
+
 
 `ifdef EXT_F_ENABLE
     reg [`NUM_WARPS-1:0][INST_FRM_BITS+`FP_FLAGS_BITS-1:0] fcsr, fcsr_n;
@@ -132,71 +138,89 @@ import VX_fpu_pkg::*;
         if (reset) begin
             mscratch <= base_dcrs.startup_arg;
             csr_ctas <= '0;
-        end
-        if (write_enable) begin
-            case (write_addr)
-            `ifdef EXT_F_ENABLE
-                `VX_CSR_FFLAGS,
-                `VX_CSR_FRM,
-                `VX_CSR_FCSR,
-            `endif
-                `VX_CSR_SATP,
-                `VX_CSR_MSTATUS,
-                `VX_CSR_MNSTATUS,
-                `VX_CSR_MEDELEG,
-                `VX_CSR_MIDELEG,
-                `VX_CSR_MIE,
-                `VX_CSR_MTVEC,
-                `VX_CSR_MEPC,
-                `VX_CSR_PMPCFG0,
-                `VX_CSR_PMPADDR0: begin
-                    // do nothing!
-                end
-                `VX_CSR_MSCRATCH: begin
-                    mscratch <= write_data;
-                end
+            dl_entry_valid_reg <= '0;
+            csr_dl_kde <= '0;
+        end else begin
+            // Clear valid bit if arbiter is ready (handshake complete)
+            // This is placed BEFORE the write logic so that if a write happens in the same cycle,
+            // the valid bit is re-asserted (last assignment wins).
+            dl_entry_valid_reg <= dl_entry_valid_reg & ~dl_arb_ready;
+            
+            if (write_enable) begin
+                case (write_addr)
+                `ifdef EXT_F_ENABLE
+                    `VX_CSR_FFLAGS,
+                    `VX_CSR_FRM,
+                    `VX_CSR_FCSR,
+                `endif
+                    `VX_CSR_SATP,
+                    `VX_CSR_MSTATUS,
+                    `VX_CSR_MNSTATUS,
+                    `VX_CSR_MEDELEG,
+                    `VX_CSR_MIDELEG,
+                    `VX_CSR_MIE,
+                    `VX_CSR_MTVEC,
+                    `VX_CSR_MEPC,
+                    `VX_CSR_PMPCFG0,
+                    `VX_CSR_PMPADDR0: begin
+                        // do nothing!
+                    end
+                    `VX_CSR_MSCRATCH: begin
+                        mscratch <= write_data;
+                    end
 
-                // TODO: need to the the new writes to STALL until the kernel has been sent to the arbiter
-                // Need elastic handshaking interface between the CSR and the arbiter
-                // CSR ready is dl_ready (tied to dl_ready_reg), need to pass in the arbiter ready signal
-                // need to decide if this can happen in the same cycle (check if the arbiter is ready and just bypass)
-                // or need to wait for new cycle and check if the arbiter is ready
-                `VX_CSR_DL_PC: begin
-                    csr_dl_kde[write_wid].pc <= write_data[`XLEN-1:0];
-                end
-                `VX_CSR_DL_GRID_DIM_0: begin
-                    csr_dl_kde[write_wid].grid_dim[0] <= write_data;
-                end
-                `VX_CSR_DL_GRID_DIM_1: begin
-                    csr_dl_kde[write_wid].grid_dim[1] <= write_data;
-                end
-                `VX_CSR_DL_GRID_DIM_2: begin
-                    csr_dl_kde[write_wid].grid_dim[2] <= write_data;
-                end
-                `VX_CSR_DL_BLOCK_DIM_0: begin
-                    csr_dl_kde[write_wid].block_dim[0] <= write_data;
-                end
-                `VX_CSR_DL_BLOCK_DIM_1: begin
-                    csr_dl_kde[write_wid].block_dim[1] <= write_data;
-                end
-                `VX_CSR_DL_BLOCK_DIM_2: begin
-                    csr_dl_kde[write_wid].block_dim[2] <= write_data;
-                end
-                `VX_CSR_DL_PARAM: begin
-                    csr_dl_kde[write_wid].param <= write_data[`XLEN-1:0];
-                end
-                `VX_CSR_DL_READY: begin
-                    csr_dl_kde[write_wid].ready <= write_data[0];
-                    dl_ready_reg <= write_data[0];
-                end
-                default: begin
-                    `ASSERT(0, ("%t: *** %s invalid CSR write address: %0h (#%0d)", $time, INSTANCE_ID, write_addr, write_uuid));
-                end
-            endcase
-        end
-        if (cta_csr_if.valid) begin
-            csr_ctas[cta_csr_if.wid] <= cta_csr_if.data;
-            // `TRACE(0, ("The csr is written. cta_z: %d\n", csr_ctas[cta_csr_if.wid].cta_z));
+                    // TODO: need to the the new writes to STALL until the kernel has been sent to the arbiter
+                    // Need elastic handshaking interface between the CSR and the arbiter
+                    // CSR ready is dl_ready (tied to dl_entry_valid_reg), need to pass in the arbiter ready signal
+                    // need to decide if this can happen in the same cycle (check if the arbiter is ready and just bypass)
+                    // or need to wait for new cycle and check if the arbiter is ready
+                    // STATUS: STALLING THE CSR WRITE IMPLEMENTATION DEFERRED (OUT OF SCOPE FOR NOW, DON'T WORRY UNTIL EVERYTHING ELSE IS DONE)
+
+                    // TODO: let's remove the ready bit and just assume only one kernel can be created per sm
+                    // STATUS: DONE
+                    // TODO: NEED TO ADD PATH THROUGH THE CSR UNIT TO THE ARBITER AND IMPLEMENT ELASTIC HANDSHAKING
+                    // STATUS: DONE
+                    // TODO: ADD THE SENDING OF THE KERNEL TO THE ARBITER
+                    // STATUS: Need to implement logic to reset the ready signal after successful transaction.
+                    `VX_CSR_DL_PC: begin
+                        csr_dl_kde[write_wid].pc <= write_data[`XLEN-1:0];
+                    end
+                    `VX_CSR_DL_GRID_DIM_0: begin
+                        csr_dl_kde[write_wid].grid_dim[0] <= write_data;
+                    end
+                    `VX_CSR_DL_GRID_DIM_1: begin
+                        csr_dl_kde[write_wid].grid_dim[1] <= write_data;
+                    end
+                    `VX_CSR_DL_GRID_DIM_2: begin
+                        csr_dl_kde[write_wid].grid_dim[2] <= write_data;
+                    end
+                    `VX_CSR_DL_BLOCK_DIM_0: begin
+                        csr_dl_kde[write_wid].block_dim[0] <= write_data;
+                    end
+                    `VX_CSR_DL_BLOCK_DIM_1: begin
+                        csr_dl_kde[write_wid].block_dim[1] <= write_data;
+                    end
+                    `VX_CSR_DL_BLOCK_DIM_2: begin
+                        csr_dl_kde[write_wid].block_dim[2] <= write_data;
+                    end
+                    `VX_CSR_DL_PARAM: begin
+                        csr_dl_kde[write_wid].param <= write_data[`XLEN-1:0];
+                        dl_entry_valid_reg[write_wid] <= 1;
+
+                    end
+                    // `VX_CSR_DL_READY: begin
+                    //     csr_dl_kde[write_wid].ready <= write_data[0];
+                    //     dl_entry_valid_reg <= write_data[0];
+                    // end
+                    default: begin
+                        `ASSERT(0, ("%t: *** %s invalid CSR write address: %0h (#%0d)", $time, INSTANCE_ID, write_addr, write_uuid));
+                    end
+                endcase
+            end
+            if (cta_csr_if.valid) begin
+                csr_ctas[cta_csr_if.wid] <= cta_csr_if.data;
+                // `TRACE(0, ("The csr is written. cta_z: %d\n", csr_ctas[cta_csr_if.wid].cta_z));
+            end
         end
     end
 

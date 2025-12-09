@@ -36,7 +36,11 @@ module VX_csr_unit import VX_gpu_pkg::*; #(
     VX_sched_csr_if.slave       sched_csr_if,
     VX_cta_csr_if.slave         cta_csr_if,
     VX_execute_if.slave         execute_if,
-    VX_result_if.master         result_if
+    VX_result_if.master         result_if,
+
+    input wire[`NUM_WARPS-1:0]  dl_arb_ready,
+    output wire[`NUM_WARPS-1:0] dl_entry_valid,
+    output dl_data_t [`NUM_WARPS-1:0] dl_entry_out
 );
     `UNUSED_SPARAM (INSTANCE_ID)
     localparam PID_BITS   = `CLOG2(`NUM_THREADS / NUM_LANES);
@@ -109,7 +113,11 @@ module VX_csr_unit import VX_gpu_pkg::*; #(
         .write_uuid     (execute_if.data.uuid),
         .write_wid      (execute_if.data.wid),
         .write_addr     (csr_addr),
-        .write_data     (csr_write_data)
+        .write_data     (csr_write_data),
+
+        .dl_arb_ready   (dl_arb_ready),
+        .dl_entry_valid (dl_entry_valid),
+        .dl_entry_out   (dl_entry_out)
     );
 
     // CSR read
