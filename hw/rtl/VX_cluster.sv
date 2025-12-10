@@ -39,9 +39,9 @@ module VX_cluster import VX_gpu_pkg::*; #(
     // Distributed task
     VX_kmu_bus_if.slave         task_in[1],
 
-    output kmu_data_t           dk_cluster_level_launch_data,
-    output wire             dk_cluster_level_launch_valid,
-    input wire              dk_main_arb_ready
+    output kmu_data_t           dkl_cluster_level_entry_data,
+    output wire             dkl_cluster_level_entry_valid,
+    input wire              dkl_cluster_to_main_arb_ready
 );
 
     VX_kmu_bus_if task_out[NUM_SOCKETS]();
@@ -138,9 +138,9 @@ module VX_cluster import VX_gpu_pkg::*; #(
     ///////////////////////////////////////////////////////////////////////////
 
     wire [NUM_SOCKETS-1:0] per_socket_busy;
-    wire [NUM_SOCKETS-1:0] dk_socket_level_launch_valid;
-    wire [NUM_SOCKETS-1:0] dk_cluster_level_arb_ready;
-    kmu_data_t [NUM_SOCKETS-1:0] dk_socket_level_launch_data;
+    wire [NUM_SOCKETS-1:0] dkl_socket_level_entry_valid;
+    wire [NUM_SOCKETS-1:0] dkl_socket_to_cluster_arb_ready;
+    kmu_data_t [NUM_SOCKETS-1:0] dkl_socket_level_entry_data;
 
     // Generate all sockets
     for (genvar socket_id = 0; socket_id < NUM_SOCKETS; ++socket_id) begin : g_sockets
@@ -182,15 +182,15 @@ module VX_cluster import VX_gpu_pkg::*; #(
         .NUM_INPUTS (NUM_SOCKETS),
         .NUM_OUTPUTS (1),
         .DATAW ($bits(kmu_data_t))
-    ) dk_socket_to_cluster_level_launch_arb (
+    ) dkl_socket_to_cluster_arb (
         .clk (clk),
         .reset (reset),
-        .valid_in (dk_socket_level_launch_valid),
-        .data_in (dk_socket_level_launch_data),
-        .ready_in (dk_cluster_level_arb_ready),
-        .valid_out (dk_cluster_level_launch_valid),
-        .data_out (dk_cluster_level_launch_data),
-        .ready_out (dk_main_arb_ready)
+        .valid_in (dkl_socket_level_entry_valid),
+        .data_in (dkl_socket_level_entry_data),
+        .ready_in (dkl_socket_to_cluster_arb_ready),
+        .valid_out (dkl_cluster_level_entry_valid),
+        .data_out (dkl_cluster_level_entry_data),
+        .ready_out (dkl_cluster_to_main_arb_ready)
     );
 
     `BUFFER_EX(busy, (| per_socket_busy), 1'b1, 1, (NUM_SOCKETS > 1));

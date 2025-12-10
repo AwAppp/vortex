@@ -48,10 +48,10 @@ wire start;
 
 wire host_dcr_out_valid;
 kmu_data_t host_dcr_kmu_data;
-wire dk_main_level_launch_valid;
-kmu_data_t dk_main_level_launch_data;
-wire [1:0] host_vs_dk_launch_ready;
-wire host_vs_dk_launch_valid;
+wire dkl_main_level_entry_valid;
+kmu_data_t dkl_main_level_entry_data;
+wire [1:0] host_vs_dkl_arb_ready;
+wire host_vs_dkl_entry_valid;
 
 wire hwq_in_ready;
 kmu_data_t hwq_in_data;
@@ -89,7 +89,7 @@ kmu_dcr_host_buffer (
     .dcr_wr_addr (dcr_wr_addr),
     .dcr_wr_data (dcr_wr_data),
     .dcr_kmu_data (host_dcr_kmu_data),
-    .hwq_in_ready (host_vs_dk_launch_ready[0]),
+    .hwq_in_ready (host_vs_dkl_arb_ready[0]),
     .dcr_out_valid (host_dcr_out_valid)
 );
 
@@ -98,14 +98,15 @@ VX_stream_arb #(
     .NUM_INPUTS (2),
     .NUM_OUTPUTS (1),
     .DATAW (VX_DCR_DATA_WIDTH)
-) host_vs_dk_launch_arb (
+) host_vs_dkl_arb (
     .clk (clk),
     .reset (reset),
-    .valid_in ({host_dcr_out_valid, dk_main_level_launch_valid}),
-    .data_in ({host_dcr_kmu_data, dk_main_level_launch_data}),
-    .ready_in (hwq_in_ready),
-    .valid_out (host_vs_dk_launch_valid),
+    .valid_in ({host_dcr_out_valid, dkl_main_level_entry_valid}),
+    .data_in ({host_dcr_kmu_data, dkl_main_level_entry_data}),
+    .ready_in (host_vs_dkl_arb_ready),
+    .valid_out (host_vs_dkl_entry_valid),
     .data_out (hwq_in_data),
+    .ready_out (hwq_in_ready)
 );
 
 VX_elastic_buffer #(
@@ -116,7 +117,7 @@ VX_elastic_buffer #(
 ) elastic_buffer (
     .clk (clk),
     .reset (reset),
-    .valid_in (host_vs_dk_launch_valid),
+    .valid_in (host_vs_dkl_entry_valid),
     .ready_in (hwq_in_ready),
     .data_in (hwq_in_data),
     .valid_out (hwq_out_valid),
@@ -276,15 +277,15 @@ kmu_dcr_kd (
         .NUM_INPUTS (`NUM_CLUSTERS),
         .NUM_OUTPUTS (1),
         .DATAW ($bits(kmu_data_t))
-    ) dk_cluster_to_main_level_launch_arb (
+    ) dkl_cluster_to_main_arb (
         .clk (clk),
         .reset (reset),
-        .valid_in (dk_cluster_level_launch_valid),
-        .data_in (dk_cluster_level_launch_data),
-        .ready_in (dk_main_arb_ready),
-        .valid_out (dk_main_level_launch_valid),
-        .data_out (dk_main_level_launch_data),
-        .ready_out (dk_main_arb_ready)
+        .valid_in (dkl_cluster_level_entry_valid),
+        .data_in (dkl_cluster_level_entry_data),
+        .ready_in (dkl_cluster_to_main_arb_ready),
+        .valid_out (dkl_main_level_entry_valid),
+        .data_out (dkl_main_level_entry_data),
+        .ready_out (host_vs_dkl_arb_ready)
     );
 
     `BUFFER_EX(busy, (| per_cluster_busy), 1'b1, 1, (`NUM_CLUSTERS > 1));

@@ -242,14 +242,14 @@
 `define VX_CSR_CTA_ID                   12'hCC9
 
 // DKS addition
-`define VX_CSR_DL_PC                    12'hCCA
-`define VX_CSR_DL_GRID_DIM_0            12'hCCB
-`define VX_CSR_DL_GRID_DIM_1            12'hCCC
-`define VX_CSR_DL_GRID_DIM_2            12'hCCD
-`define VX_CSR_DL_BLOCK_DIM_0           12'hCCE
-`define VX_CSR_DL_BLOCK_DIM_1           12'hCCF
-`define VX_CSR_DL_BLOCK_DIM_2           12'hCD0
-`define VX_CSR_DL_PARAM                 12'hCD1
-`define VX_CSR_DL_READY                 12'hCD2
+`define VX_CSR_DKL_PC                    12'hCCA
+`define VX_CSR_DKL_GRID_DIM_0            12'hCCB
+`define VX_CSR_DKL_GRID_DIM_1            12'hCCC
+`define VX_CSR_DKL_GRID_DIM_2            12'hCCD
+`define VX_CSR_DKL_BLOCK_DIM_0           12'hCCE
+`define VX_CSR_DKL_BLOCK_DIM_1           12'hCCF
+`define VX_CSR_DKL_BLOCK_DIM_2           12'hCD0
+`define VX_CSR_DKL_PARAM                 12'hCD1
+`define VX_CSR_DKL_READY                 12'hCD2
 
 `endif // VX_TYPES_VH

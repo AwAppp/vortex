@@ -41,9 +41,9 @@ module VX_sfu_unit import VX_gpu_pkg::*; #(
     // Outputs
     VX_commit_if.master     commit_if [`ISSUE_WIDTH],
     VX_warp_ctl_if.master   warp_ctl_if,
-    output kmu_data_t       dk_csr_level_launch_data,
-    output wire             dk_csr_level_launch_valid,
-    input wire              dk_core_level_arb_ready
+    output kmu_data_t       dkl_core_level_entry_data,
+    output wire             dkl_core_level_entry_valid,
+    input wire              dkl_core_to_socket_arb_ready
 );
     `UNUSED_SPARAM (INSTANCE_ID)
     localparam BLOCK_SIZE   = 1;
@@ -53,11 +53,11 @@ module VX_sfu_unit import VX_gpu_pkg::*; #(
     localparam PE_IDX_WCTL  = 0;
     localparam PE_IDX_CSRS  = 1;
 
-    wire [`NUM_WARPS-1:0] dl_arb_ready;
-    wire [`NUM_WARPS-1:0] dl_entry_valid;
-    kmu_data_t [`NUM_WARPS-1:0] dl_entry_out;
+    wire [`NUM_WARPS-1:0] dkl_csr_to_core_arb_ready;
+    wire [`NUM_WARPS-1:0] dkl_csr_level_entry_valid;
+    kmu_data_t [`NUM_WARPS-1:0] dkl_csr_level_entry_data;
     // kmu_data_t dl_arb_data_out;
-    // assign dk_csr_level_launch_data = dl_arb_data_out;
+    // assign dkl_core_level_entry_data = dl_arb_data_out;
 
     VX_execute_if #(
         .NUM_LANES (NUM_LANES)
@@ -144,26 +144,26 @@ module VX_sfu_unit import VX_gpu_pkg::*; #(
         .sched_csr_if   (sched_csr_if),
         .cta_csr_if     (cta_csr_if),
         .commit_csr_if  (commit_csr_if),
-        .result_if      (pe_result_if[PE_IDX_CSRS])
+        .result_if      (pe_result_if[PE_IDX_CSRS]),
 
-        .dl_arb_ready   (dl_arb_ready),
-        .dl_entry_valid (dl_entry_valid),
-        .dl_entry_out   (dl_entry_out)
+        .dkl_csr_to_core_arb_ready   (dkl_csr_to_core_arb_ready),
+        .dkl_csr_level_entry_valid (dkl_csr_level_entry_valid),
+        .dkl_csr_level_entry_data   (dkl_csr_level_entry_data)
     );
 
     VX_stream_arb #(
         .NUM_INPUTS (`NUM_WARPS),
         .NUM_OUTPUTS (1),
         .DATAW ($bits(kmu_data_t))
-    ) dl_arb (
+    ) dkl_csr_to_core_arb (
         .clk (clk),
         .reset (reset),
-        .valid_in (dl_entry_valid),
-        .data_in (dl_entry_out),
-        .ready_in (dl_arb_ready),
-        .valid_out (dk_csr_level_launch_valid),
-        .data_out (dk_csr_level_launch_data),
-        .ready_out (dk_core_level_arb_ready)
+        .valid_in (dkl_csr_level_entry_valid),
+        .data_in (dkl_csr_level_entry_data),
+        .ready_in (dkl_csr_to_core_arb_ready),
+        .valid_out (dkl_core_level_entry_valid),
+        .data_out (dkl_core_level_entry_data),
+        .ready_out (dkl_core_to_socket_arb_ready)
     );
 
     VX_gather_unit #(

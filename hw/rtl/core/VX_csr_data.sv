@@ -70,10 +70,9 @@ import VX_fpu_pkg::*;
     input wire [`VX_CSR_ADDR_BITS-1:0]  write_addr,
     input wire [`XLEN-1:0]              write_data,
 
-    input wire [`NUM_WARPS-1:0]         dl_arb_ready,
-    output wire [`NUM_WARPS-1:0]        dl_entry_valid,
-    // output wire [`NUM_WARPS-1:0][$bits(dl_data_t)-1:0] dl_entry_out,
-    output dl_data_t [`NUM_WARPS-1:0]   dl_entry_out
+    input wire [`NUM_WARPS-1:0]         dkl_csr_to_core_arb_ready,
+    output wire [`NUM_WARPS-1:0]        dkl_csr_level_entry_valid,
+    output kmu_data_t [`NUM_WARPS-1:0]  dkl_csr_level_entry_data
 );
 
     `UNUSED_VAR (reset)
@@ -84,11 +83,11 @@ import VX_fpu_pkg::*;
 
     reg [`XLEN-1:0] mscratch;
     csr_cta_data_t [`NUM_WARPS-1:0] csr_ctas;
-    dl_data_t [`NUM_WARPS-1:0] csr_dl_kde;
-    reg [`NUM_WARPS-1:0] dl_entry_valid_reg;
+    kmu_data_t [`NUM_WARPS-1:0] csr_dkl_kde;
+    reg [`NUM_WARPS-1:0] dkl_csr_level_entry_valid_reg;
 
-    assign dl_entry_valid = dl_entry_valid_reg;
-    assign dl_entry_out = csr_dl_kde;
+    assign dkl_csr_level_entry_valid = dkl_csr_level_entry_valid_reg;
+    assign dkl_csr_level_entry_data = csr_dkl_kde;
 
 
 `ifdef EXT_F_ENABLE
@@ -138,13 +137,13 @@ import VX_fpu_pkg::*;
         if (reset) begin
             mscratch <= base_dcrs.startup_arg;
             csr_ctas <= '0;
-            dl_entry_valid_reg <= '0;
-            csr_dl_kde <= '0;
+            dkl_csr_level_entry_valid_reg <= '0;
+            csr_dkl_kde <= '0;
         end else begin
             // Clear valid bit if arbiter is ready (handshake complete)
             // This is placed BEFORE the write logic so that if a write happens in the same cycle,
             // the valid bit is re-asserted (last assignment wins).
-            dl_entry_valid_reg <= dl_entry_valid_reg & ~dl_arb_ready;
+            dkl_csr_level_entry_valid_reg <= dkl_csr_level_entry_valid_reg & ~dkl_csr_to_core_arb_ready;
             
             if (write_enable) begin
                 case (write_addr)
@@ -171,7 +170,7 @@ import VX_fpu_pkg::*;
 
                     // TODO: need to the the new writes to STALL until the kernel has been sent to the arbiter
                     // Need elastic handshaking interface between the CSR and the arbiter
-                    // CSR ready is dl_ready (tied to dl_entry_valid_reg), need to pass in the arbiter ready signal
+                    // CSR ready is dkl_ready (tied to dkl_csr_level_entry_valid_reg), need to pass in the arbiter ready signal
                     // need to decide if this can happen in the same cycle (check if the arbiter is ready and just bypass)
                     // or need to wait for new cycle and check if the arbiter is ready
                     // STATUS: STALLING THE CSR WRITE IMPLEMENTATION DEFERRED (OUT OF SCOPE FOR NOW, DON'T WORRY UNTIL EVERYTHING ELSE IS DONE)
@@ -182,35 +181,35 @@ import VX_fpu_pkg::*;
                     // STATUS: DONE
                     // TODO: ADD THE SENDING OF THE KERNEL TO THE ARBITER
                     // STATUS: Need to implement logic to reset the ready signal after successful transaction.
-                    `VX_CSR_DL_PC: begin
-                        csr_dl_kde[write_wid].pc <= write_data[`XLEN-1:0];
+                    `VX_CSR_DKL_PC: begin
+                        csr_dkl_kde[write_wid].pc <= write_data[`XLEN-1:0];
                     end
-                    `VX_CSR_DL_GRID_DIM_0: begin
-                        csr_dl_kde[write_wid].grid_dim[0] <= write_data;
+                    `VX_CSR_DKL_GRID_DIM_0: begin
+                        csr_dkl_kde[write_wid].grid_dim[0] <= write_data;
                     end
-                    `VX_CSR_DL_GRID_DIM_1: begin
-                        csr_dl_kde[write_wid].grid_dim[1] <= write_data;
+                    `VX_CSR_DKL_GRID_DIM_1: begin
+                        csr_dkl_kde[write_wid].grid_dim[1] <= write_data;
                     end
-                    `VX_CSR_DL_GRID_DIM_2: begin
-                        csr_dl_kde[write_wid].grid_dim[2] <= write_data;
+                    `VX_CSR_DKL_GRID_DIM_2: begin
+                        csr_dkl_kde[write_wid].grid_dim[2] <= write_data;
                     end
-                    `VX_CSR_DL_BLOCK_DIM_0: begin
-                        csr_dl_kde[write_wid].block_dim[0] <= write_data;
+                    `VX_CSR_DKL_BLOCK_DIM_0: begin
+                        csr_dkl_kde[write_wid].block_dim[0] <= write_data;
                     end
-                    `VX_CSR_DL_BLOCK_DIM_1: begin
-                        csr_dl_kde[write_wid].block_dim[1] <= write_data;
+                    `VX_CSR_DKL_BLOCK_DIM_1: begin
+                        csr_dkl_kde[write_wid].block_dim[1] <= write_data;
                     end
-                    `VX_CSR_DL_BLOCK_DIM_2: begin
-                        csr_dl_kde[write_wid].block_dim[2] <= write_data;
+                    `VX_CSR_DKL_BLOCK_DIM_2: begin
+                        csr_dkl_kde[write_wid].block_dim[2] <= write_data;
                     end
-                    `VX_CSR_DL_PARAM: begin
-                        csr_dl_kde[write_wid].param <= write_data[`XLEN-1:0];
-                        dl_entry_valid_reg[write_wid] <= 1;
+                    `VX_CSR_DKL_PARAM: begin
+                        csr_dkl_kde[write_wid].param <= write_data[`XLEN-1:0];
+                        dkl_csr_level_entry_valid_reg[write_wid] <= 1;
 
                     end
-                    // `VX_CSR_DL_READY: begin
-                    //     csr_dl_kde[write_wid].ready <= write_data[0];
-                    //     dl_entry_valid_reg <= write_data[0];
+                    // `VX_CSR_DKL_READY: begin
+                    //     csr_dkl_kde[write_wid].ready <= write_data[0];
+                    //     dkl_csr_level_entry_valid_reg <= write_data[0];
                     // end
                     default: begin
                         `ASSERT(0, ("%t: *** %s invalid CSR write address: %0h (#%0d)", $time, INSTANCE_ID, write_addr, write_uuid));
