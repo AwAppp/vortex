@@ -40,7 +40,10 @@ module VX_sfu_unit import VX_gpu_pkg::*; #(
 
     // Outputs
     VX_commit_if.master     commit_if [`ISSUE_WIDTH],
-    VX_warp_ctl_if.master   warp_ctl_if
+    VX_warp_ctl_if.master   warp_ctl_if,
+    output kmu_data_t       dk_csr_level_launch_data,
+    output wire             dk_csr_level_launch_valid,
+    input wire              dk_core_level_arb_ready
 );
     `UNUSED_SPARAM (INSTANCE_ID)
     localparam BLOCK_SIZE   = 1;
@@ -49,6 +52,12 @@ module VX_sfu_unit import VX_gpu_pkg::*; #(
     localparam PE_SEL_BITS  = `CLOG2(PE_COUNT);
     localparam PE_IDX_WCTL  = 0;
     localparam PE_IDX_CSRS  = 1;
+
+    wire [`NUM_WARPS-1:0] dl_arb_ready;
+    wire [`NUM_WARPS-1:0] dl_entry_valid;
+    kmu_data_t [`NUM_WARPS-1:0] dl_entry_out;
+    // kmu_data_t dl_arb_data_out;
+    // assign dk_csr_level_launch_data = dl_arb_data_out;
 
     VX_execute_if #(
         .NUM_LANES (NUM_LANES)
@@ -136,6 +145,25 @@ module VX_sfu_unit import VX_gpu_pkg::*; #(
         .cta_csr_if     (cta_csr_if),
         .commit_csr_if  (commit_csr_if),
         .result_if      (pe_result_if[PE_IDX_CSRS])
+
+        .dl_arb_ready   (dl_arb_ready),
+        .dl_entry_valid (dl_entry_valid),
+        .dl_entry_out   (dl_entry_out)
+    );
+
+    VX_stream_arb #(
+        .NUM_INPUTS (`NUM_WARPS),
+        .NUM_OUTPUTS (1),
+        .DATAW ($bits(kmu_data_t))
+    ) dl_arb (
+        .clk (clk),
+        .reset (reset),
+        .valid_in (dl_entry_valid),
+        .data_in (dl_entry_out),
+        .ready_in (dl_arb_ready),
+        .valid_out (dk_csr_level_launch_valid),
+        .data_out (dk_csr_level_launch_data),
+        .ready_out (dk_core_level_arb_ready)
     );
 
     VX_gather_unit #(

@@ -45,6 +45,20 @@ module Vortex import VX_gpu_pkg::*; (
 );
 
 wire start;
+
+wire host_dcr_out_valid;
+kmu_data_t host_dcr_kmu_data;
+wire dk_main_level_launch_valid;
+kmu_data_t dk_main_level_launch_data;
+wire [1:0] host_vs_dk_launch_ready;
+wire host_vs_dk_launch_valid;
+
+wire hwq_in_ready;
+kmu_data_t hwq_in_data;
+kmu_data_t hwq_out_data;
+wire hwq_out_valid;
+wire hwq_out_ready;
+
 `UNUSED_VAR(start);
 
 VX_kmu_bus_if kmu_bus_in[1]();
@@ -67,6 +81,33 @@ VX_kmu_bus_if kmu_bus_out[`NUM_CLUSTERS]();
 // );
 
 
+VX_kmu_refactored_dcr_host_buffer #()
+kmu_dcr_host_buffer (
+    .clk (clk),
+    .reset (reset),
+    .dcr_wr_valid (dcr_wr_valid),
+    .dcr_wr_addr (dcr_wr_addr),
+    .dcr_wr_data (dcr_wr_data),
+    .dcr_kmu_data (host_dcr_kmu_data),
+    .hwq_in_ready (host_vs_dk_launch_ready[0]),
+    .dcr_out_valid (host_dcr_out_valid)
+);
+
+// TODO: join this with the other buffer
+VX_stream_arb #(
+    .NUM_INPUTS (2),
+    .NUM_OUTPUTS (1),
+    .DATAW (VX_DCR_DATA_WIDTH)
+) host_vs_dk_launch_arb (
+    .clk (clk),
+    .reset (reset),
+    .valid_in ({host_dcr_out_valid, dk_main_level_launch_valid}),
+    .data_in ({host_dcr_kmu_data, dk_main_level_launch_data}),
+    .ready_in (hwq_in_ready),
+    .valid_out (host_vs_dk_launch_valid),
+    .data_out (hwq_in_data),
+);
+
 VX_elastic_buffer #(
     .DATAW (VX_DCR_DATA_WIDTH),
     .SIZE  (8),
@@ -75,23 +116,33 @@ VX_elastic_buffer #(
 ) elastic_buffer (
     .clk (clk),
     .reset (reset),
-    .valid_in (dcr_wr_valid),
-    .ready_in (dcr_wr_ready),
-    .data_in (dcr_wr_data),
-    .valid_out (dcr_wr_valid),
-    .data_out (dcr_wr_data),
-    .ready_out (dcr_wr_ready)
+    .valid_in (host_vs_dk_launch_valid),
+    .ready_in (hwq_in_ready),
+    .data_in (hwq_in_data),
+    .valid_out (hwq_out_valid),
+    .data_out (hwq_out_data),
+    .ready_out (hwq_out_ready)
 );
 
-VX_kmu kmu(
+VX_kmu_refactored_dcr_kd #()
+kmu_dcr_kd (
     .clk (clk),
     .reset (reset),
-    .dcr_wr_valid (dcr_wr_valid),
-    .dcr_wr_addr (dcr_wr_addr),
-    .dcr_wr_data (dcr_wr_data),
-    .start (start),
-    .kmu_bus_out (kmu_bus_in) // <-- add this line
+    .hwq_data (hwq_out_data),
+    .hwq_data_valid (hwq_out_valid),
+    .kmu_kd_ready (hwq_out_ready),
+    .kmu_bus_out (kmu_bus_in)
 );
+
+// VX_kmu kmu(
+//     .clk (clk),
+//     .reset (reset),
+//     .dcr_wr_valid (dcr_wr_valid),
+//     .dcr_wr_addr (dcr_wr_addr),
+//     .dcr_wr_data (dcr_wr_data),
+//     .start (start),
+//     .kmu_bus_out (kmu_bus_in) // <-- add this line
+// );
 
 `ifdef SCOPE
     localparam scope_cluster = 0;
@@ -177,6 +228,9 @@ VX_kmu kmu(
     assign dcr_bus_if.write_data  = dcr_wr_data;
 
     wire [`NUM_CLUSTERS-1:0] per_cluster_busy;
+    wire [`NUM_CLUSTERS-1:0] dk_cluster_level_launch_valid;
+    wire [`NUM_CLUSTERS-1:0] dk_main_arb_ready;
+    kmu_data_t [`NUM_CLUSTERS-1:0] dk_cluster_level_launch_data;
 
     VX_kmu_arb #(
         .NUM_INPUTS (1),
@@ -217,6 +271,21 @@ VX_kmu kmu(
             .task_in            (kmu_bus_out[cluster_id +: 1])
         );
     end
+
+    VX_stream_arb #(
+        .NUM_INPUTS (`NUM_CLUSTERS),
+        .NUM_OUTPUTS (1),
+        .DATAW ($bits(kmu_data_t))
+    ) dk_cluster_to_main_level_launch_arb (
+        .clk (clk),
+        .reset (reset),
+        .valid_in (dk_cluster_level_launch_valid),
+        .data_in (dk_cluster_level_launch_data),
+        .ready_in (dk_main_arb_ready),
+        .valid_out (dk_main_level_launch_valid),
+        .data_out (dk_main_level_launch_data),
+        .ready_out (dk_main_arb_ready)
+    );
 
     `BUFFER_EX(busy, (| per_cluster_busy), 1'b1, 1, (`NUM_CLUSTERS > 1));
 

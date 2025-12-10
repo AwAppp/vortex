@@ -46,6 +46,10 @@ module VX_execute import VX_gpu_pkg::*; #(
 
     // commit interface
     VX_commit_csr_if.slave  commit_csr_if
+
+    output kmu_data_t       dk_csr_level_launch_data,
+    output wire             dk_csr_level_launch_valid,
+    input wire              dk_core_level_arb_ready
 );
 
 `ifdef EXT_F_ENABLE
@@ -117,7 +121,10 @@ module VX_execute import VX_gpu_pkg::*; #(
         .commit_csr_if  (commit_csr_if),
         .sched_csr_if   (sched_csr_if),
         .warp_ctl_if    (warp_ctl_if),
-        .cta_csr_if     (cta_csr_if)
+        .cta_csr_if     (cta_csr_if),
+        .dk_csr_level_launch_data (dk_csr_level_launch_data),
+        .dk_csr_level_launch_valid (dk_csr_level_launch_valid),
+        .dk_core_level_arb_ready (dk_core_level_arb_ready)
     );
 
 endmodule

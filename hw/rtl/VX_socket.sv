@@ -42,7 +42,10 @@ module VX_socket import VX_gpu_pkg::*; #(
     output wire             busy,
 
     // Distributed task
-    VX_kmu_bus_if.slave      task_in[1]
+    VX_kmu_bus_if.slave      task_in[1],
+    output kmu_data_t       dk_core_level_launch_data,
+    output wire             dk_core_level_launch_valid,
+    input wire              dk_socket_level_arb_ready
 );
 
     VX_kmu_bus_if task_out[`SOCKET_SIZE]();
@@ -230,6 +233,9 @@ module VX_socket import VX_gpu_pkg::*; #(
     ///////////////////////////////////////////////////////////////////////////
 
     wire [`SOCKET_SIZE-1:0] per_core_busy;
+    wire [`SOCKET_SIZE-1:0] dk_csr_level_launch_valid;
+    wire [`SOCKET_SIZE-1:0] dk_core_level_arb_ready;
+    kmu_data_t [`SOCKET_SIZE-1:0] dk_csr_level_launch_data;
 
     // Generate all cores
     for (genvar core_id = 0; core_id < `SOCKET_SIZE; ++core_id) begin : g_cores
@@ -265,8 +271,27 @@ module VX_socket import VX_gpu_pkg::*; #(
             .busy           (per_core_busy[core_id]),
 
             .task_in        (task_out[core_id +: 1])
+
+            .dk_csr_level_launch_data (dk_csr_level_launch_data[core_id]),
+            .dk_csr_level_launch_valid (dk_csr_level_launch_valid[core_id]),
+            .dk_core_level_arb_ready (dk_core_level_arb_ready[core_id])
         );
     end
+
+    VX_stream_arb #(
+        .NUM_INPUTS (`SOCKET_SIZE),
+        .NUM_OUTPUTS (1),
+        .DATAW ($bits(kmu_data_t))
+    ) dk_core_to_socket_level_launch_arb (
+        .clk (clk),
+        .reset (reset),
+        .valid_in (dk_csr_level_launch_valid),
+        .data_in (dk_csr_level_launch_data),
+        .ready_in (dk_core_level_arb_ready),
+        .valid_out (dk_core_level_launch_valid),
+        .data_out (dk_core_level_launch_data),
+        .ready_out (dk_socket_level_arb_ready)
+    );
 
     `BUFFER_EX(busy, (| per_core_busy), 1'b1, 1, (`SOCKET_SIZE > 1));
 
