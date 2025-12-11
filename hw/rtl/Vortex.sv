@@ -103,8 +103,10 @@ VX_stream_arb #(
 ) host_vs_dkl_arb (
     .clk (clk),
     .reset (reset),
-    .valid_in ({host_dcr_out_valid, dkl_main_level_entry_valid}),
-    .data_in ({host_dcr_kmu_data, dkl_main_level_entry_data}),
+    // .valid_in ({host_dcr_out_valid, dkl_main_level_entry_valid}),
+    .valid_in ({dkl_main_level_entry_valid, host_dcr_out_valid}),
+    // .data_in ({host_dcr_kmu_data, dkl_main_level_entry_data}),
+    .data_in ({dkl_main_level_entry_data, host_dcr_kmu_data}),
     .ready_in (host_vs_dkl_arb_ready),
     .valid_out (host_vs_dkl_entry_valid),
     .data_out (hwq_in_data),
@@ -373,5 +375,15 @@ kmu_dcr_kd (
         $fflush(); // flush stdout buffer
     end
 `endif
+
+always @(posedge clk) begin
+    `TRACE(1, ("%t: VORTEX_MAIN: host_vs_dkl_arb_ready: %b, dkl_main_level_entry_valid: %b, host_dcr_out_valid: %b\n", $time, host_vs_dkl_arb_ready, dkl_main_level_entry_valid, host_dcr_out_valid))
+    `TRACE(1, ("%t: VORTEX_MAIN: host_vs_dkl_in_valid=%b, hwq_in_ready=%b, hwq_out_valid=%b, hwq_out_ready=%b\n", $time, host_vs_dkl_entry_valid, hwq_in_ready, hwq_out_valid, hwq_out_ready))
+    `TRACE(1, ("%t: VORTEX_MAIN: dkl_main_level_entry_data=%h, host_dcr_kmu_data=%h\n", $time,dkl_main_level_entry_data, host_dcr_kmu_data))
+    `TRACE(1, ("%t: VORTEX_MAIN: hwq_in_data=%h, hwq_out_data=%h\n", $time, hwq_in_data, hwq_out_data))
+    
+    
+    
+end
 
 endmodule

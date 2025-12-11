@@ -87,6 +87,10 @@ module VX_fifo_queue #(
             end else begin
                 wr_ptr_r <= wr_ptr_r + ADDRW'(push);
                 rd_ptr_r <= rd_ptr_r + ADDRW'(pop);
+                if (DEPTH == 8) begin
+                    `TRACE(1, ("%t FIFO: wr_ptr_r=%d, rd_ptr_r=%d, data_in=%h, data_out_w=%h\n",
+                    $time, wr_ptr_r, rd_ptr_r, data_in, data_out_w))
+                end
             end
         end
 

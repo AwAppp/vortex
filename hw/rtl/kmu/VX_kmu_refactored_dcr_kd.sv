@@ -65,7 +65,7 @@ module VX_kmu_refactored_dcr_kd import VX_gpu_pkg::*; (
         `TRACE(1,  ("%t: KMU_KD: hwq_data_valid=%b, kmu_kd_ready=%b, all_cta_sent=%b\n",
                $time, hwq_data_valid, kmu_kd_ready, all_cta_sent))
         if (reset) begin
-            `TRACE(1,  ("%t: KMU_KD: entered reset", $time))
+            `TRACE(1,  ("%t: KMU_KD: entered reset\n", $time))
             counter_x    <= 0;
             counter_y    <= 0;
             counter_z    <= 0;

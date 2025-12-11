@@ -133,6 +133,10 @@ import VX_fpu_pkg::*;
     end
 `endif
 
+    initial begin
+        dkl_csr_level_entry_valid_reg = '0;
+    end
+
     always @(posedge clk) begin
         if (reset) begin
             mscratch <= base_dcrs.startup_arg;

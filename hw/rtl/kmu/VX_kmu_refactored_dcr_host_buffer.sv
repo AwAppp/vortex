@@ -17,24 +17,36 @@ module VX_kmu_refactored_dcr_host_buffer import VX_gpu_pkg::*; (
    );
 
     kmu_data_t kmu_data;
+    // kmu_data_t kmu_data_out;
     reg [7:0] fields_ready;
     
-    assign dcr_out_valid = &fields_ready;
+    assign dcr_out_valid = (&fields_ready) && (!reset);
+    // assign dcr_kmu_data = kmu_data_out;
     assign dcr_kmu_data = kmu_data;
 
+    initial begin
+        fields_ready = 0;
+    end
+
     always @ (posedge clk) begin
-         `TRACE(1,  ("%t: KMU_HOST_BUFFER: clock high, fields_ready %b, kmu_data: PC: %h, grid_dim: %d, %d, %d, block_dim: %d, %d, %d, param: %h\n",
-               $time, fields_ready, kmu_data.pc, kmu_data.grid_dim[0], kmu_data.grid_dim[1], kmu_data.grid_dim[2],
-                kmu_data.block_dim[0], kmu_data.block_dim[1], kmu_data.block_dim[2], kmu_data.param))
+        
+        `TRACE(1,  ("%t: KMU_HOST_BUFFER: hwq_in_ready: %b\n", $time, hwq_in_ready))
         if (reset) begin
              `TRACE(1,  ("%t: KMU_HOST_BUFFER: entered reset_sent\n", $time))
-            kmu_data <= '0;
-            fields_ready <= '0;
-        end else if (dcr_out_valid && hwq_in_ready) begin
-            `TRACE(1,  ("%t: KMU_HOST_BUFFER: valid handshake\n", $time))
+            // kmu_data <= '0;
+            // fields_ready <= '0;
+        end 
+        if (dcr_out_valid && hwq_in_ready) begin
+            `TRACE(1,  ("%t: KMU_HOST_BUFFER: valid handshake, kmu_data=%h\n", $time, kmu_data))
+
             fields_ready <= 0;
-        end else if (dcr_wr_valid) begin
+            // kmu_data_out = kmu_data;
+        end 
+        if (dcr_wr_valid) begin
             `TRACE(1,  ("%t: KMU_HOST_BUFFER: writing, dcr_wr_addr: %h, dcr_wr_data: %h\n", $time, dcr_wr_addr, dcr_wr_data))
+            `TRACE(1,  ("%t: KMU_HOST_BUFFER: fields_ready %b, kmu_data: PC: %h, grid_dim: %d, %d, %d, block_dim: %d, %d, %d, param: %h\n",
+               $time, fields_ready, kmu_data.pc, kmu_data.grid_dim[0], kmu_data.grid_dim[1], kmu_data.grid_dim[2],
+                kmu_data.block_dim[0], kmu_data.block_dim[1], kmu_data.block_dim[2], kmu_data.param))
             case(dcr_wr_addr)
                 // PC
                 `VX_DCR_BASE_STARTUP_ADDR0: begin
@@ -83,6 +95,9 @@ module VX_kmu_refactored_dcr_host_buffer import VX_gpu_pkg::*; (
                     // `ASSERT(0, ("%t: invalid DCR write address: %0h", $time, dcr_bus_if.write_addr));
                 end
             endcase
+            // `TRACE(1,  ("%t: KMU_HOST_BUFFER: Post write: fields_ready %b, kmu_data: PC: %h, grid_dim: %d, %d, %d, block_dim: %d, %d, %d, param: %h\n",
+            //    $time, fields_ready, kmu_data.pc, kmu_data.grid_dim[0], kmu_data.grid_dim[1], kmu_data.grid_dim[2],
+            //     kmu_data.block_dim[0], kmu_data.block_dim[1], kmu_data.block_dim[2], kmu_data.param))
             
         end
 
