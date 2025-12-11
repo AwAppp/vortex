@@ -151,6 +151,7 @@ module VX_sfu_unit import VX_gpu_pkg::*; #(
         .dkl_csr_level_entry_data   (dkl_csr_level_entry_data)
     );
 
+    /* verilator lint_off PINMISSING */
     VX_stream_arb #(
         .NUM_INPUTS (`NUM_WARPS),
         .NUM_OUTPUTS (1),
@@ -165,6 +166,7 @@ module VX_sfu_unit import VX_gpu_pkg::*; #(
         .data_out (dkl_core_level_entry_data),
         .ready_out (dkl_core_to_socket_arb_ready)
     );
+    /* verilator lint_on PINMISSING */
 
     VX_gather_unit #(
         .BLOCK_SIZE (BLOCK_SIZE),

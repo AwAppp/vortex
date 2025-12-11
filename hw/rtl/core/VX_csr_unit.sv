@@ -40,7 +40,7 @@ module VX_csr_unit import VX_gpu_pkg::*; #(
 
     input wire[`NUM_WARPS-1:0]  dkl_csr_to_core_arb_ready,
     output wire[`NUM_WARPS-1:0] dkl_csr_level_entry_valid,
-    output dl_data_t [`NUM_WARPS-1:0] dkl_csr_level_entry_data
+    output kmu_data_t [`NUM_WARPS-1:0] dkl_csr_level_entry_data
 );
     `UNUSED_SPARAM (INSTANCE_ID)
     localparam PID_BITS   = `CLOG2(`NUM_THREADS / NUM_LANES);

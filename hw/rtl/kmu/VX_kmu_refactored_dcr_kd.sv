@@ -115,7 +115,7 @@ module VX_kmu_refactored_dcr_kd import VX_gpu_pkg::*; (
             counter_y <= '0;
             counter_z <= '0;
             counter_id <= '0;
-            kmu_kd_ready <= 0'b1;
+            kmu_kd_ready <= 1'b0;
             kmu_bus_out[0].req_valid <= 0;
             all_cta_sent <= 0;
         end

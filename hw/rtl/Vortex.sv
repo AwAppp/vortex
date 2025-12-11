@@ -43,8 +43,9 @@ module Vortex import VX_gpu_pkg::*; (
     // Status
     output wire                             busy
 );
-
+/* verilator lint_off UNDRIVEN */
 wire start;
+/* verilator lint_on UNDRIVEN */
 
 wire host_dcr_out_valid;
 kmu_data_t host_dcr_kmu_data;
@@ -94,10 +95,11 @@ kmu_dcr_host_buffer (
 );
 
 // TODO: join this with the other buffer
+/* verilator lint_off PINMISSING */
 VX_stream_arb #(
     .NUM_INPUTS (2),
     .NUM_OUTPUTS (1),
-    .DATAW (VX_DCR_DATA_WIDTH)
+    .DATAW ($bits(kmu_data_t))
 ) host_vs_dkl_arb (
     .clk (clk),
     .reset (reset),
@@ -108,9 +110,10 @@ VX_stream_arb #(
     .data_out (hwq_in_data),
     .ready_out (hwq_in_ready)
 );
+/* verilator lint_on PINMISSING */
 
 VX_elastic_buffer #(
-    .DATAW (VX_DCR_DATA_WIDTH),
+    .DATAW ($bits(kmu_data_t)),
     .SIZE  (8),
     .OUT_REG (1),
     .LUTRAM (0)
@@ -125,6 +128,7 @@ VX_elastic_buffer #(
     .ready_out (hwq_out_ready)
 );
 
+/* verilator lint_off PINMISSING */
 VX_kmu_refactored_dcr_kd #()
 kmu_dcr_kd (
     .clk (clk),
@@ -134,6 +138,7 @@ kmu_dcr_kd (
     .kmu_kd_ready (hwq_out_ready),
     .kmu_bus_out (kmu_bus_in)
 );
+/* verilator lint_on PINMISSING */
 
 // VX_kmu kmu(
 //     .clk (clk),
@@ -229,9 +234,9 @@ kmu_dcr_kd (
     assign dcr_bus_if.write_data  = dcr_wr_data;
 
     wire [`NUM_CLUSTERS-1:0] per_cluster_busy;
-    wire [`NUM_CLUSTERS-1:0] dk_cluster_level_launch_valid;
-    wire [`NUM_CLUSTERS-1:0] dk_main_arb_ready;
-    kmu_data_t [`NUM_CLUSTERS-1:0] dk_cluster_level_launch_data;
+    wire [`NUM_CLUSTERS-1:0] dkl_cluster_level_entry_valid;
+    wire [`NUM_CLUSTERS-1:0] dkl_cluster_to_main_arb_ready;
+    kmu_data_t [`NUM_CLUSTERS-1:0] dkl_cluster_level_entry_data;
 
     VX_kmu_arb #(
         .NUM_INPUTS (1),
@@ -269,10 +274,14 @@ kmu_dcr_kd (
             .mem_bus_if         (per_cluster_mem_bus_if[cluster_id * `L2_MEM_PORTS +: `L2_MEM_PORTS]),
 
             .busy               (per_cluster_busy[cluster_id]),
-            .task_in            (kmu_bus_out[cluster_id +: 1])
+            .task_in            (kmu_bus_out[cluster_id +: 1]),
+            .dkl_cluster_level_entry_data (dkl_cluster_level_entry_data[cluster_id]),
+            .dkl_cluster_level_entry_valid (dkl_cluster_level_entry_valid[cluster_id]),
+            .dkl_cluster_to_main_arb_ready (dkl_cluster_to_main_arb_ready[cluster_id])
         );
     end
 
+    /* verilator lint_off PINMISSING */
     VX_stream_arb #(
         .NUM_INPUTS (`NUM_CLUSTERS),
         .NUM_OUTPUTS (1),
@@ -285,8 +294,9 @@ kmu_dcr_kd (
         .ready_in (dkl_cluster_to_main_arb_ready),
         .valid_out (dkl_main_level_entry_valid),
         .data_out (dkl_main_level_entry_data),
-        .ready_out (host_vs_dkl_arb_ready)
+        .ready_out (host_vs_dkl_arb_ready[1])
     );
+    /* verilator lint_on PINMISSING */
 
     `BUFFER_EX(busy, (| per_cluster_busy), 1'b1, 1, (`NUM_CLUSTERS > 1));
 

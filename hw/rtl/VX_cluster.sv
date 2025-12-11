@@ -174,10 +174,14 @@ module VX_cluster import VX_gpu_pkg::*; #(
 
             .busy           (per_socket_busy[socket_id]),
 
-            .task_in        (task_out[socket_id +: 1])
+            .task_in        (task_out[socket_id +: 1]),
+            .dkl_socket_level_entry_data (dkl_socket_level_entry_data[socket_id]),
+            .dkl_socket_level_entry_valid (dkl_socket_level_entry_valid[socket_id]),
+            .dkl_socket_to_cluster_arb_ready (dkl_socket_to_cluster_arb_ready[socket_id])
         );
     end
 
+    /* verilator lint_off PINMISSING */
     VX_stream_arb #(
         .NUM_INPUTS (NUM_SOCKETS),
         .NUM_OUTPUTS (1),
@@ -192,6 +196,7 @@ module VX_cluster import VX_gpu_pkg::*; #(
         .data_out (dkl_cluster_level_entry_data),
         .ready_out (dkl_cluster_to_main_arb_ready)
     );
+    /* verilator lint_on PINMISSING */
 
     `BUFFER_EX(busy, (| per_socket_busy), 1'b1, 1, (NUM_SOCKETS > 1));
 

@@ -11,7 +11,7 @@ module VX_kmu_refactored_dcr_host_buffer import VX_gpu_pkg::*; (
     
     output kmu_data_t                       dcr_kmu_data,
     input wire                              hwq_in_ready,
-    output wire                             dcr_out_valid,
+    output wire                             dcr_out_valid
 
     
    );
@@ -26,11 +26,9 @@ module VX_kmu_refactored_dcr_host_buffer import VX_gpu_pkg::*; (
         if (reset) begin
             kmu_data <= '0;
             fields_ready <= '0;
-        end 
-        if (dcr_out_valid && hwq_in_ready) begin
+        end else if (dcr_out_valid && hwq_in_ready) begin
             fields_ready <= 0;
-        end
-        if (dcr_wr_valid) begin
+        end else if (dcr_wr_valid) begin
             case(dcr_wr_addr)
                 // PC
                 `VX_DCR_BASE_STARTUP_ADDR0: begin

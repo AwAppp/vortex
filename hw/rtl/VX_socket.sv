@@ -278,6 +278,7 @@ module VX_socket import VX_gpu_pkg::*; #(
         );
     end
 
+    /* verilator lint_off PINMISSING */
     VX_stream_arb #(
         .NUM_INPUTS (`SOCKET_SIZE),
         .NUM_OUTPUTS (1),
@@ -292,6 +293,7 @@ module VX_socket import VX_gpu_pkg::*; #(
         .data_out (dkl_socket_level_entry_data),
         .ready_out (dkl_socket_to_cluster_arb_ready)
     );
+    /* verilator lint_on PINMISSING */
 
     `BUFFER_EX(busy, (| per_core_busy), 1'b1, 1, (`SOCKET_SIZE > 1));
 

@@ -37,8 +37,9 @@ module VX_stream_arb #(
     output wire [NUM_OUTPUTS-1:0]            valid_out,
     output wire [NUM_OUTPUTS-1:0][DATAW-1:0] data_out,
     input  wire [NUM_OUTPUTS-1:0]            ready_out,
-
+    /* verilator lint_off PINMISSING */
     output wire [SEL_COUNT-1:0][NUM_REQS_W-1:0] sel_out
+    /* verilator lint_on PINMISSING */
 );
     if (NUM_INPUTS > NUM_OUTPUTS) begin : g_input_select
 
