@@ -282,14 +282,14 @@ inline int vx_shfl_idx(size_t value, int bval, int cval, int mask) {
 }
 
 inline void dynamic_kernel_launch(uintptr_t pc, uint32_t grid_dim[3], uint32_t block_dim[3], uintptr_t param) {
-    csr_write(VX_CSR_DL_PC, pc);
-    csr_write(VX_CSR_DL_GRID_DIM_0, grid_dim[0]);
-    csr_write(VX_CSR_DL_GRID_DIM_1, grid_dim[1]);
-    csr_write(VX_CSR_DL_GRID_DIM_2, grid_dim[2]);
-    csr_write(VX_CSR_DL_BLOCK_DIM_0, block_dim[0]);
-    csr_write(VX_CSR_DL_BLOCK_DIM_1, block_dim[1]);
-    csr_write(VX_CSR_DL_BLOCK_DIM_2, block_dim[2]);
-    csr_write(VX_CSR_DL_PARAM, param);
+    csr_write(VX_CSR_DKL_PC, pc);
+    csr_write(VX_CSR_DKL_GRID_DIM_0, grid_dim[0]);
+    csr_write(VX_CSR_DKL_GRID_DIM_1, grid_dim[1]);
+    csr_write(VX_CSR_DKL_GRID_DIM_2, grid_dim[2]);
+    csr_write(VX_CSR_DKL_BLOCK_DIM_0, block_dim[0]);
+    csr_write(VX_CSR_DKL_BLOCK_DIM_1, block_dim[1]);
+    csr_write(VX_CSR_DKL_BLOCK_DIM_2, block_dim[2]);
+    csr_write(VX_CSR_DKL_PARAM, param);
     return;
 }
 

@@ -23,12 +23,18 @@ module VX_kmu_refactored_dcr_host_buffer import VX_gpu_pkg::*; (
     assign dcr_kmu_data = kmu_data;
 
     always @ (posedge clk) begin
+         `TRACE(1,  ("%t: KMU_HOST_BUFFER: clock high, fields_ready %b, kmu_data: PC: %h, grid_dim: %d, %d, %d, block_dim: %d, %d, %d, param: %h\n",
+               $time, fields_ready, kmu_data.pc, kmu_data.grid_dim[0], kmu_data.grid_dim[1], kmu_data.grid_dim[2],
+                kmu_data.block_dim[0], kmu_data.block_dim[1], kmu_data.block_dim[2], kmu_data.param))
         if (reset) begin
+             `TRACE(1,  ("%t: KMU_HOST_BUFFER: entered reset_sent\n", $time))
             kmu_data <= '0;
             fields_ready <= '0;
         end else if (dcr_out_valid && hwq_in_ready) begin
+            `TRACE(1,  ("%t: KMU_HOST_BUFFER: valid handshake\n", $time))
             fields_ready <= 0;
         end else if (dcr_wr_valid) begin
+            `TRACE(1,  ("%t: KMU_HOST_BUFFER: writing, dcr_wr_addr: %h, dcr_wr_data: %h\n", $time, dcr_wr_addr, dcr_wr_data))
             case(dcr_wr_addr)
                 // PC
                 `VX_DCR_BASE_STARTUP_ADDR0: begin
