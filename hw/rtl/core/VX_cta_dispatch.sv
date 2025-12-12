@@ -95,6 +95,7 @@ module VX_cta_dispatch import VX_gpu_pkg::*;
                         cta_csr_if.data.cta_y   <= task_in.req_data.cta_y;
                         cta_csr_if.data.cta_z   <= task_in.req_data.cta_z;
                         cta_csr_if.data.cta_id  <= task_in.req_data.cta_id;
+                        cta_csr_if.data.param   <= task_in.req_data.param;  // pass param for mscratch
                         state                   <= DISPATCH;
                     end
                 end

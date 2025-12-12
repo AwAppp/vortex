@@ -76,12 +76,11 @@ import VX_fpu_pkg::*;
 );
 
     `UNUSED_VAR (reset)
-    `UNUSED_VAR (write_wid)
     `UNUSED_VAR (write_data)
 
     // CSRs Write /////////////////////////////////////////////////////////////
 
-    reg [`XLEN-1:0] mscratch;
+    reg [`NUM_WARPS-1:0][`XLEN-1:0] mscratch;  // per-warp mscratch for kernel boot argument
     csr_cta_data_t [`NUM_WARPS-1:0] csr_ctas;
     kmu_data_t [`NUM_WARPS-1:0] csr_dkl_kde;
     reg [`NUM_WARPS-1:0] dkl_csr_level_entry_valid_reg;
@@ -139,7 +138,10 @@ import VX_fpu_pkg::*;
 
     always @(posedge clk) begin
         if (reset) begin
-            mscratch <= base_dcrs.startup_arg;
+            // Initialize all per-warp mscratch values to the host kernel's startup arg
+            for (integer i = 0; i < `NUM_WARPS; i++) begin
+                mscratch[i] <= base_dcrs.startup_arg;
+            end
             csr_ctas <= '0;
             dkl_csr_level_entry_valid_reg <= '0;
             csr_dkl_kde <= '0;
@@ -150,6 +152,8 @@ import VX_fpu_pkg::*;
             dkl_csr_level_entry_valid_reg <= dkl_csr_level_entry_valid_reg & ~dkl_csr_to_core_arb_ready;
             
             if (write_enable) begin
+                `TRACE(1, ("%t: CSR_WRITE: write_enable, write_addr: %h, write_data: %h\n", $time, write_addr, write_data))
+                `TRACE(1, ("%t: CSR_WRITE: dkl_csr_level_entry_valid_reg: %b\n", $time, dkl_csr_level_entry_valid_reg))
                 case (write_addr)
                 `ifdef EXT_F_ENABLE
                     `VX_CSR_FFLAGS,
@@ -169,7 +173,7 @@ import VX_fpu_pkg::*;
                         // do nothing!
                     end
                     `VX_CSR_MSCRATCH: begin
-                        mscratch <= write_data;
+                        mscratch[write_wid] <= write_data;  // write to per-warp mscratch
                     end
 
                     // TODO: need to the the new writes to STALL until the kernel has been sent to the arbiter
@@ -187,29 +191,36 @@ import VX_fpu_pkg::*;
                     // STATUS: Need to implement logic to reset the ready signal after successful transaction.
                     `VX_CSR_DKL_PC: begin
                         csr_dkl_kde[write_wid].pc <= write_data[`XLEN-1:0];
+                        `TRACE(1, ("%t: WARP %d CSR_WRITE: WROTE TO PC\n", $time, write_wid))
                     end
                     `VX_CSR_DKL_GRID_DIM_0: begin
                         csr_dkl_kde[write_wid].grid_dim[0] <= write_data;
+                        `TRACE(1, ("%t: WARP %d CSR_WRITE: WROTE TO GRID DIM 0\n", $time, write_wid))
                     end
                     `VX_CSR_DKL_GRID_DIM_1: begin
                         csr_dkl_kde[write_wid].grid_dim[1] <= write_data;
+                        `TRACE(1, ("%t: WARP %d CSR_WRITE: WROTE TO GRID DIM 1\n", $time, write_wid))
                     end
                     `VX_CSR_DKL_GRID_DIM_2: begin
                         csr_dkl_kde[write_wid].grid_dim[2] <= write_data;
+                        `TRACE(1, ("%t: WARP %d CSR_WRITE: WROTE TO GRID DIM 2\n", $time, write_wid))
                     end
                     `VX_CSR_DKL_BLOCK_DIM_0: begin
                         csr_dkl_kde[write_wid].block_dim[0] <= write_data;
+                        `TRACE(1, ("%t: WARP %d CSR_WRITE: WROTE TO BLOCK DIM 0\n", $time, write_wid))
                     end
                     `VX_CSR_DKL_BLOCK_DIM_1: begin
                         csr_dkl_kde[write_wid].block_dim[1] <= write_data;
+                        `TRACE(1, ("%t: WARP %d CSR_WRITE: WROTE TO BLOCK DIM 1\n", $time, write_wid))
                     end
                     `VX_CSR_DKL_BLOCK_DIM_2: begin
                         csr_dkl_kde[write_wid].block_dim[2] <= write_data;
+                        `TRACE(1, ("%t: WARP %d CSR_WRITE: WROTE TO BLOCK DIM 2\n", $time, write_wid))
                     end
                     `VX_CSR_DKL_PARAM: begin
                         csr_dkl_kde[write_wid].param <= write_data[`XLEN-1:0];
                         dkl_csr_level_entry_valid_reg[write_wid] <= 1;
-
+                        `TRACE(1, ("%t: WARP %d CSR_WRITE: WROTE TO PARAM\n", $time, write_wid))
                     end
                     // `VX_CSR_DKL_READY: begin
                     //     csr_dkl_kde[write_wid].ready <= write_data[0];
@@ -222,7 +233,9 @@ import VX_fpu_pkg::*;
             end
             if (cta_csr_if.valid) begin
                 csr_ctas[cta_csr_if.wid] <= cta_csr_if.data;
-                // `TRACE(0, ("The csr is written. cta_z: %d\n", csr_ctas[cta_csr_if.wid].cta_z));
+                // Update per-warp mscratch with the kernel's param from CTA dispatch
+                mscratch[cta_csr_if.wid] <= cta_csr_if.data.param;
+                `TRACE(1, ("%t: CTA_CSR: wid=%0d, setting mscratch=0x%0h\n", $time, cta_csr_if.wid, cta_csr_if.data.param))
             end
         end
     end
@@ -247,7 +260,7 @@ import VX_fpu_pkg::*;
             `VX_CSR_FRM        : read_data_rw_w = `XLEN'(fcsr[read_wid][INST_FRM_BITS+`FP_FLAGS_BITS-1:`FP_FLAGS_BITS]);
             `VX_CSR_FCSR       : read_data_rw_w = `XLEN'(fcsr[read_wid]);
         `endif
-            `VX_CSR_MSCRATCH   : read_data_rw_w = mscratch;
+            `VX_CSR_MSCRATCH   : read_data_rw_w = mscratch[read_wid];  // read from per-warp mscratch
 
             `VX_CSR_CTA_X      : read_data_rw_w = csr_ctas[read_wid].cta_x;
             `VX_CSR_CTA_Y      : read_data_rw_w = csr_ctas[read_wid].cta_y;
@@ -280,6 +293,17 @@ import VX_fpu_pkg::*;
             `VX_CSR_MEPC,
             `VX_CSR_PMPCFG0,
             `VX_CSR_PMPADDR0 : read_data_ro_w = `XLEN'(0);
+
+            // DKL CSR reads
+            `VX_CSR_DKL_PC         : read_data_rw_w = csr_dkl_kde[read_wid].pc;
+            `VX_CSR_DKL_GRID_DIM_0 : read_data_rw_w = csr_dkl_kde[read_wid].grid_dim[0];
+            `VX_CSR_DKL_GRID_DIM_1 : read_data_rw_w = csr_dkl_kde[read_wid].grid_dim[1];
+            `VX_CSR_DKL_GRID_DIM_2 : read_data_rw_w = csr_dkl_kde[read_wid].grid_dim[2];
+            `VX_CSR_DKL_BLOCK_DIM_0: read_data_rw_w = csr_dkl_kde[read_wid].block_dim[0];
+            `VX_CSR_DKL_BLOCK_DIM_1: read_data_rw_w = csr_dkl_kde[read_wid].block_dim[1];
+            `VX_CSR_DKL_BLOCK_DIM_2: read_data_rw_w = csr_dkl_kde[read_wid].block_dim[2];
+            `VX_CSR_DKL_PARAM      : read_data_rw_w = csr_dkl_kde[read_wid].param;
+            `VX_CSR_DKL_READY      : read_data_rw_w = `XLEN'(dkl_csr_level_entry_valid_reg[read_wid]);
 
             default: begin
                 read_addr_valid_w = 0;

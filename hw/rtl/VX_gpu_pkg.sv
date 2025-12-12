@@ -904,6 +904,7 @@ package VX_gpu_pkg;
         logic [31:0]    cta_y;
         logic [31:0]    cta_z;
         logic [31:0]    cta_id;
+        logic [`XLEN-1:0] param;  // kernel boot argument (mscratch value for this warp)
     } csr_cta_data_t;
 
 endpackage

@@ -2,26 +2,24 @@
 #include <vx_intrinsics.h>
 #include "common.h"
 
-// Child kernel: sums all row sums from buffer B into final result C
-// This kernel is launched dynamically and runs with a single thread
+// Child kernel: Computes C = B + C (adds B to the result from parent kernel)
+// This kernel is launched dynamically by the parent kernel
 int main() {
     child_params_t* params = (child_params_t*)csr_read(VX_CSR_MSCRATCH);
 
     int warpId = static_cast<int>(csr_read(VX_CSR_CTA_ID));
     int threadId = vx_thread_id();
 
+    // Calculate global thread ID
+    int idx = warpId + threadId;
+
     TYPE* B = reinterpret_cast<TYPE*>(params->buf_B);
     TYPE* C = reinterpret_cast<TYPE*>(params->buf_C);
-    uint32_t num_rows = params->num_rows;
+    uint32_t size = params->size;
 
-    // Single thread sums all row results
-    // Only thread 0 of warp 0 performs the computation
-    if (warpId == 0 && threadId == 0) {
-        TYPE sum = 0;
-        for (uint32_t i = 0; i < num_rows; ++i) {
-            sum += B[i];
-        }
-        C[0] = sum;
+    // Each thread computes C[idx] = B[idx] + C[idx]
+    if ((uint32_t)idx < size) {
+        C[idx] = B[idx] + C[idx];
     }
 
     // Terminate all warps except warp 0

@@ -22,6 +22,8 @@ all:
 	$(MAKE) -C madmax
 	$(MAKE) -C stencil3d
 	$(MAKE) -C matreduce
+	$(MAKE) -C double_vec_add
+	$(MAKE) -C quicksort
 
 run-simx:
 	$(MAKE) -C basic run-simx
@@ -44,6 +46,8 @@ run-simx:
 	$(MAKE) -C madmax run-simx
 	$(MAKE) -C stencil3d run-simx
 	$(MAKE) -C matreduce run-simx
+	$(MAKE) -C double_vec_add run-simx
+	$(MAKE) -C quicksort run-smix
 
 run-rtlsim:
 	$(MAKE) -C basic run-rtlsim
@@ -66,6 +70,8 @@ run-rtlsim:
 	$(MAKE) -C madmax run-rtlsim
 	$(MAKE) -C stencil3d run-rtlsim
 	$(MAKE) -C matreduce run-rtlsim
+	$(MAKE) -C double_vec_add run-rtlsim
+	$(MAKE) -C quicksort run-rtlsim
 
 clean:
 	$(MAKE) -C basic clean
@@ -88,3 +94,5 @@ clean:
 	$(MAKE) -C madmax clean
 	$(MAKE) -C stencil3d clean
 	$(MAKE) -C matreduce clean
+	$(MAKE) -C double_vec_add clean
+	$(MAKE) -C quicksort clean
