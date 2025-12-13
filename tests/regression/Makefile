@@ -24,6 +24,10 @@ all:
 	$(MAKE) -C matreduce
 	$(MAKE) -C double_vec_add
 	$(MAKE) -C quicksort
+	$(MAKE) -C dynamic_launch_vector_tree_search
+	$(MAKE) -C static_launch_vector_tree_search
+	$(MAKE) -C vecadd_valid
+
 
 run-simx:
 	$(MAKE) -C basic run-simx
@@ -48,6 +52,9 @@ run-simx:
 	$(MAKE) -C matreduce run-simx
 	$(MAKE) -C double_vec_add run-simx
 	$(MAKE) -C quicksort run-smix
+	$(MAKE) -C dynamic_launch_vector_tree_search run-simx
+	$(MAKE) -C static_launch_vector_tree_search run-simx
+	$(MAKE) -C vecadd_valid run-simx
 
 run-rtlsim:
 	$(MAKE) -C basic run-rtlsim
@@ -72,6 +79,9 @@ run-rtlsim:
 	$(MAKE) -C matreduce run-rtlsim
 	$(MAKE) -C double_vec_add run-rtlsim
 	$(MAKE) -C quicksort run-rtlsim
+	$(MAKE) -C dynamic_launch_vector_tree_search run-rtlsim
+	$(MAKE) -C static_launch_vector_tree_search run-rtlsim
+	$(MAKE) -C vecadd_valid run-rtlsim
 
 clean:
 	$(MAKE) -C basic clean
@@ -96,3 +106,6 @@ clean:
 	$(MAKE) -C matreduce clean
 	$(MAKE) -C double_vec_add clean
 	$(MAKE) -C quicksort clean
+	$(MAKE) -C dynamic_launch_vector_tree_search clean
+	$(MAKE) -C static_launch_vector_tree_search clean	
+	$(MAKE) -C vecadd_valid clean

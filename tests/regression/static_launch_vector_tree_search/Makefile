@@ -1,7 +1,7 @@
 ROOT_DIR := $(realpath ../../..)
 include $(ROOT_DIR)/config.mk
 
-PROJECT := quicksort
+PROJECT := static_launch_vector_tree_search
 
 SRC_DIR := $(VORTEX_HOME)/tests/regression/$(PROJECT)
 
@@ -9,6 +9,6 @@ SRCS := $(SRC_DIR)/main.cpp
 
 VX_SRCS := $(SRC_DIR)/kernel.cpp
 
-OPTS ?= -n16
+OPTS ?= -d3 -n4
 
 include ../common.mk

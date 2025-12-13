@@ -196,13 +196,27 @@ public:
     this->dcr_write(VX_DCR_BASE_STARTUP_ARG0, args_addr & 0xffffffff);
     this->dcr_write(VX_DCR_BASE_STARTUP_ARG1, args_addr >> 32);
 
-    this->dcr_write(VX_DCR_BASE_GRID_DIM0, 64);
+    // this->dcr_write(VX_DCR_BASE_GRID_DIM0, 64);
+    // this->dcr_write(VX_DCR_BASE_GRID_DIM1, 1);
+    // this->dcr_write(VX_DCR_BASE_GRID_DIM2, 1);
+    // this->dcr_write(VX_DCR_BASE_BLOCK_DIM0, 1);
+    // this->dcr_write(VX_DCR_BASE_BLOCK_DIM1, 1);
+    // this->dcr_write(VX_DCR_BASE_BLOCK_DIM2, 1);
+
+    this->dcr_write(VX_DCR_BASE_GRID_DIM0, 1);
     this->dcr_write(VX_DCR_BASE_GRID_DIM1, 1);
     this->dcr_write(VX_DCR_BASE_GRID_DIM2, 1);
     this->dcr_write(VX_DCR_BASE_BLOCK_DIM0, 1);
     this->dcr_write(VX_DCR_BASE_BLOCK_DIM1, 1);
-    this->dcr_write(VX_DCR_BASE_BLOCK_DIM2, 1);
+    this->dcr_write(VX_DCR_BASE_BLOCK_DIM2, 256);
+    // this->dcr_write(VX_DCR_BASE_BLOCK_DIM2, 16);
 
+    // this->dcr_write(VX_DCR_BASE_GRID_DIM0, 1);
+    // this->dcr_write(VX_DCR_BASE_GRID_DIM1, 1);
+    // this->dcr_write(VX_DCR_BASE_GRID_DIM2, 1);
+    // this->dcr_write(VX_DCR_BASE_BLOCK_DIM0, 16);
+    // this->dcr_write(VX_DCR_BASE_BLOCK_DIM1, 1);
+    // this->dcr_write(VX_DCR_BASE_BLOCK_DIM2, 1);
     // start new run
     future_ = std::async(std::launch::async, [&]{
       processor_.run();
